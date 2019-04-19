@@ -112,6 +112,83 @@ MVC全名是Model View Controller，是模型(model)－视图(view)－控制器(
 ![](image/user.gif)
 ### 用户和部门的多对多关系管理
 ![](image/departmentUser.gif)
+核心代码为
+
+DepartmentUserMapper:
+```
+@Mapper
+public interface DepartmentUserMapper {
+     @Select({
+            "select r1.id,r1.department_id,r1.user_id,r1.role,d1.name as 
+            department_name,u1.real_name from department_user r1 left join 
+            department d1 on r1.department_id=d1.id left join user u1 on 
+            r1.user_id=u1.id"
+    })
+    @Results({
+            @Result(column = "department_id",property = "departmentId"),
+            @Result(column = "user_id",property = "userId"),
+            @Result(column = "department_name",property = "departmentName"),
+            @Result(column = "real_name",property = "realName")
+    })
+    List<GetAllDepartmentUserDao>getAllDepartmentUser();
+    @Insert({
+            "insert into department_user(`department_id`, `user_id`,`role`, `extension`) values(#{departmentId}, #{userId},#{role}, #{extension})"
+    })
+    int insert(InsertDepartmentUserDao insertDepartmentUserDao);
+}
+```
+DepartmentUserService:
+```
+public interface DepartmentUserService {
+
+    Object getAllDepartmentUserDao(int page, int size);
+
+    int insert(InsertDepartmentUserDao insertDepartmentUserDao);
+}
+```
+DepartmentUserServiceImpl:
+```
+@Service
+public class DepartmentUserServiceImpl implements DepartmentUserService {
+
+    @Resource
+    private DepartmentUserMapper departmentUserMapper;
+
+    @Override
+    public Object getAllDepartmentUserDao(int page, int size) {
+        PageHelper.startPage(page, size);
+        List<GetAllDepartmentUserDao> departmentUsersList = departmentUserMapper.getAllDepartmentUser();
+        PageInfo<GetAllDepartmentUserDao> pageInfo = new PageInfo<>(departmentUsersList);
+        return pageInfo;
+    }
+
+    @Override
+    public int insert(InsertDepartmentUserDao insertDepartmentUserDao) {
+        return departmentUserMapper.insert(insertDepartmentUserDao);
+    }
+
+}
+```
+Controller:
+```
+@RequestMapping("/departmentUser")
+public class DepartmentUserController {
+    @Resource
+    private DepartmentUserService departmentUserService;
+    @GetMapping("/getAllDepartmentUserDao")
+    @ApiOperation(value = "查询全部")
+    public Object getAllDepartmentUserDao(@RequestParam(value = "page", defaultValue = "1") int page,
+                          @RequestParam(value = "size", defaultValue = "10") int size) {
+        return departmentUserService.getAllDepartmentUserDao(page, size);
+        }
+
+    @ApiOperation(value = "添加部门-人员关系表")
+    @PostMapping("/insert")
+    public int insert(@RequestBody InsertDepartmentUserDao insertDepartmentUserDao) {
+        return departmentUserService.insert(insertDepartmentUserDao);
+    }
+}
+```
 ### 发表的推送管理
 ![](image/article.gif)
 ### 活动通知管理
